@@ -3,6 +3,7 @@ from googleapiclient.discovery import build
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.errors import HttpError
 from google.auth.transport.requests import Request
+from threading import Lock
 import pickle
 import os
 
@@ -136,8 +137,10 @@ This function is designed to clear all tasks from the specified task list using 
 TASKLISTID as the target task list. The function involves the following steps:
 
 - Validates if the TASKLISTID has been set. Raises a RuntimeError if TASKLISTID is None.
+- Initializes a lock and a set to track ongoing deletions for synchronization among deletion threads.
 - Retrieves the tasks in the specified task list using the Google Tasks API 'list' method.
 - Processes tasks by deleting them iteratively using the 'delete' method for each task.
+- Uses a lock to prevent concurrent deletion of the same task ID, allowing only one thread to delete a task ID at a time.
 - Asserts that all tasks have been cleared from the task list. Raises AssertionError if some tasks remain.
 
 Expected Conditions:
@@ -151,6 +154,10 @@ Raises:
 def clear_task_list():
     if TASKLISTID is None:
         raise RuntimeError("Task list ID is not set. Please set the task list ID before performing this operation.")
+    
+    # Initialize a lock and a set to track ongoing deletions
+    deletion_lock = Lock()
+    ongoing_deletions = set()
     
     # Retrieve tasks in the task list
     try:
@@ -167,7 +174,40 @@ def clear_task_list():
     # Process tasks if the task list is found
     while tasks.get('items'):
         for task in tasks.get('items', []):
-            SERVICE.tasks().delete(tasklist=TASKLISTID, task=task['id']).execute()
+            task_id = task['id']
+
+            # Acquire the lock before processing the task
+            deletion_lock.acquire()
+
+            # Check if the task ID is already in ongoing deletions
+            if task_id not in ongoing_deletions:
+                # Add the task ID to ongoing deletions to lock it
+                ongoing_deletions.add(task_id)
+                
+                # Release the lock before making the delete request
+                deletion_lock.release()
+                
+                # Make the delete request
+                try:
+                    SERVICE.tasks().delete(tasklist=TASKLISTID, task=task_id).execute()
+                except HttpError as e:
+                    print(f"HTTP error occurred while deleting task {task_id}: {e}")      
+
+                # Remove the task ID from ongoing deletions after deletion is complete
+                deletion_lock.acquire()
+                ongoing_deletions.remove(task_id)
+                deletion_lock.release()
+
+        try:
+            tasks = SERVICE.tasks().list(tasklist=TASKLISTID).execute()
+        except HttpError as e:
+            if e.resp.status == 404:
+                print("Task list not found.")
+                raise
+            else:
+                # Handle other HTTP errors if necessary
+                print(f"An HTTP error occurred: {e}")
+                raise
 
     # Ensure all tasks are cleared
     assert not tasks.get('items'), f"Failed to clear all tasks in the list (ID: {TASKLISTID}). Some tasks remain."
