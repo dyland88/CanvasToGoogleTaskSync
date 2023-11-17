@@ -2,6 +2,4 @@
 /*
 !README.md
 !requirements.txt
-
-# Include all files and directories inside the 'src' directory
-!/src/**
+!/src/*.py
