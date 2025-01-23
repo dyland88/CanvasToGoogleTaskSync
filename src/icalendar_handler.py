@@ -1,3 +1,4 @@
+import datetime
 import requests
 import icalendar
 
@@ -29,16 +30,15 @@ def _fetch_ical_from_web(url):
 
     Args:
         URL (str): The URL pointing to the iCalendar file (taken from the Canvas calendar page).
+        day_range (int): The number of days into the future to get assignments
 
     Returns:
-        tuple: A tuple containing two lists - events and assignments.
-               events (list): List of regular events with start dates.
-               assignments (list): List of assignments.
+        assignments (list): List of assignments.
 
     Raises:
         Exception: If there's an error fetching or parsing the iCalendar content.
 """
-def get_ical_content(URL):
+def get_ical_content(URL, day_range=14):
     try:
         ical_content = _fetch_ical_from_web(URL)
     except Exception as e:
@@ -47,7 +47,6 @@ def get_ical_content(URL):
 
     # Parse the fetched iCalendar content
     cal = icalendar.Calendar.from_ical(ical_content)
-    events = []
     assignments = []
     
     # Iterate through each component in the iCalendar data
@@ -61,10 +60,10 @@ def get_ical_content(URL):
                 "description": component.get('description'),
                 "is_assignment": is_assignment,
             }
-            # Categorize events as assignments or regular events
-            if event["is_assignment"]:
+            # filter out dates that are in the past or too many days into the future
+            now = datetime.datetime.date(datetime.datetime.now())
+            assignment_cutoff_date = now + datetime.timedelta(days=day_range)
+            if event["is_assignment"] and now <= event["date"] <= assignment_cutoff_date:
                 assignments.append(event)
-            else:
-                events.append(event)
     
-    return events, assignments
+    return assignments

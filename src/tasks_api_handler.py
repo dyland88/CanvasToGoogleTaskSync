@@ -276,14 +276,36 @@ def _get_task_list_id(taskListName):
     results = SERVICE.tasklists().list().execute()
 
     # Search for the task list with the specified name
-    task_list = next((tl for tl in results.get('items', []) if tl['title'] == taskListName), None)
+    for tl in results.get('items', []):
+        # print(f"Task list found: {tl['title']}")
+        if tl['title'] == taskListName:
+            task_list = tl
+            break
+    else:
+        task_list = None
 
     # If the task list is not found, raise a ValueError
     if not task_list:
         raise ValueError(f"Task list with the name '{taskListName}' not found.")
     else:
         # Return the ID of the task list if found
+        print("Selected list: " + task_list['title'])
         return task_list['id']
+    
+
+"""
+Returns an array containing the names of the task lists
+"""
+def get_task_lists():
+    # Call the Google Tasks API to get the task lists
+    results = SERVICE.tasklists().list().execute()
+    task_lists = []
+
+    # Search for the task list with the specified name
+    for tl in results.get('items', []):
+        task_lists.append(tl['title'])
+
+    return task_lists
 
 """
 Formats a date string to RFC3339 format.
