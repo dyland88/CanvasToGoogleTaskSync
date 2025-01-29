@@ -3,3 +3,5 @@
 !README.md
 !requirements.txt
 !/src/*.py
+!/src
+__pycache__

@@ -320,8 +320,7 @@ Returns:
 - str: The formatted date string in RFC3339 format.
 """
 def _formatDateString(d):
-    return ('%04d-%02d-%02dT00:00:00-04:00' %
-            (d.year, d.month, d.day,)) 
+    return d.strftime('%Y-%m-%dT%H:%M:%S.000Z')
 
 """
 Truncates a string to a specified limit.
@@ -368,6 +367,19 @@ def get_current_tasks():
         print(f"HTTP error occurred: {e}")
         raise
 
+def get_all_tasks():
+    if TASKLISTID is None:
+        raise RuntimeError("Task list ID is not set. Please set the task list ID before performing this operation.")
+    
+    try:
+        tasks = SERVICE.tasks().list(tasklist=TASKLISTID, showCompleted=True, showHidden=True).execute()
+        tasks = [task for task in tasks.get('items', [])]
+        # print("current google tasks:", tasks)
+        return tasks
+    except HttpError as e:
+        print(f"HTTP error occurred: {e}")
+        raise
+
 
 """
 Updates the due date of a specified task in the Google Tasks service.
@@ -403,6 +415,7 @@ def update_task_due_date(task_id, new_due_date):
         
         # Update the due date
         task['due'] = _formatDateString(new_due_date)
+        task['notes'] = "due date changed"
         
         # Send the update request
         updated_task = SERVICE.tasks().update(tasklist=TASKLISTID, task=task_id, body=task).execute()
