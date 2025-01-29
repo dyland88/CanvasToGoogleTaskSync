@@ -340,3 +340,76 @@ Returns:
 def _truncateString(input_string, limit=8000):
     truncated_string = input_string[:limit]
     return truncated_string + "\n\n Character limit reached"
+
+"""
+This function retrieves the list of uncompleted tasks from the specified task list
+using the global variable TASKLISTID. It involves the following steps:
+
+- Validates if the TASKLISTID has been set. Raises a RuntimeError if TASKLISTID is None.
+- Calls the Google Tasks API to get the tasks in the specified task list.
+- Filters the tasks to include only those that are not completed.
+
+Returns:
+- list: A list of uncompleted tasks.
+
+Raises:
+- Raises a RuntimeError if the TASKLISTID is not set before performing this operation.
+- Handles HTTP errors (HttpError) if encountered during task retrieval.
+"""
+def get_current_tasks():
+    if TASKLISTID is None:
+        raise RuntimeError("Task list ID is not set. Please set the task list ID before performing this operation.")
+    
+    try:
+        tasks = SERVICE.tasks().list(tasklist=TASKLISTID).execute()
+        uncompleted_tasks = [task for task in tasks.get('items', []) if not task.get('status') == 'completed']
+        return uncompleted_tasks
+    except HttpError as e:
+        print(f"HTTP error occurred: {e}")
+        raise
+
+
+"""
+Updates the due date of a specified task in the Google Tasks service.
+
+This function updates the due date of a task identified by the provided 'task_id'
+in the task list specified by the global variable TASKLISTID. The function involves
+the following steps:
+
+- Validates if the TASKLISTID has been set. Raises a RuntimeError if TASKLISTID is None.
+- Retrieves the task using the Google Tasks API 'get' method.
+- Updates the task's due date with the provided new date.
+- Sends an update request to the Google Tasks API to apply the changes.
+
+Args:
+- task_id (str): The ID of the task to be updated.
+- new_due_date (datetime): The new due date for the task.
+
+Outputs:
+- Returns the updated task if successful.
+
+Raises:
+- Raises a RuntimeError if the TASKLISTID is not set before performing this operation.
+- Handles HTTP errors (HttpError) if encountered during task retrieval or update.
+- Raises an Exception if an unexpected error occurs while updating the task.
+"""
+def update_task_due_date(task_id, new_due_date):
+    if TASKLISTID is None:
+        raise RuntimeError("Task list ID is not set. Please set the task list ID before performing this operation.")
+    
+    try:
+        # Retrieve the task
+        task = SERVICE.tasks().get(tasklist=TASKLISTID, task=task_id).execute()
+        
+        # Update the due date
+        task['due'] = _formatDateString(new_due_date)
+        
+        # Send the update request
+        updated_task = SERVICE.tasks().update(tasklist=TASKLISTID, task=task_id, body=task).execute()
+        return updated_task
+    except HttpError as e:
+        print(f"HTTP error occurred: {e}")
+        raise
+    except Exception as error:
+        print(f"An unexpected error occurred while updating the task: {error}")
+        raise
