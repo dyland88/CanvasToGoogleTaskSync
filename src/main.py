@@ -12,6 +12,14 @@ def find_new_and_updated_assignments(assignments, current_tasks):
 
     # Create a dictionary of current tasks for quick lookup
     task_dict = {task['title']: task for task in current_tasks}
+    # debug print assignments
+    # print("current canvas assignments:")
+    # for assignment in assignments:
+    #     print(assignment["name"])
+    # print("\ncurrent google tasks:")
+    # for task in task_dict:
+    #     print(task_dict[task]['title'])
+        
 
     for assignment in assignments:
         assignment_name = assignment['name']
@@ -38,8 +46,9 @@ if __name__ == "__main__":
     set_task_list("School")
 
     # Get iCal file from URL in env
-    assignments = get_ical_content(os.getenv("CANVAS_ICAL_URL"), 21)
-    print("Retrieved calendar from Canvas")
+    print("Retrieving calendar from Canvas...")
+    assignments = get_ical_content(os.getenv("CANVAS_ICAL_URL"), 14)
+    print("Retrieved successfully")
     # assignments[0]["date"] = assignments[5]["date"]   
     
     # current_tasks = get_current_tasks()

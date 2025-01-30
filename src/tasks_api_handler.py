@@ -247,7 +247,7 @@ def _get_credentials():
         else:
             flow = InstalledAppFlow.from_client_secrets_file(
                 'credentials.json', SCOPES)
-            credentials = flow.run_local_server(port=0)
+            credentials = flow.run_local_server(port=0, access_type='offline')
 
         # Save the credentials for the next run
         with open('token.pickle', 'wb') as token:
@@ -374,7 +374,6 @@ def get_all_tasks():
     try:
         tasks = SERVICE.tasks().list(tasklist=TASKLISTID, showCompleted=True, showHidden=True).execute()
         tasks = [task for task in tasks.get('items', [])]
-        # print("current google tasks:", tasks)
         return tasks
     except HttpError as e:
         print(f"HTTP error occurred: {e}")
