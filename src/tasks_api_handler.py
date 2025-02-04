@@ -372,8 +372,14 @@ def get_all_tasks():
         raise RuntimeError("Task list ID is not set. Please set the task list ID before performing this operation.")
     
     try:
-        tasks = SERVICE.tasks().list(tasklist=TASKLISTID, showCompleted=True, showHidden=True).execute()
-        tasks = [task for task in tasks.get('items', [])]
+        tasks = []
+        page_token = None
+        while True:
+            response = SERVICE.tasks().list(tasklist=TASKLISTID, showCompleted=True, showHidden=True, pageToken=page_token).execute()
+            tasks.extend(response.get('items', []))
+            page_token = response.get('nextPageToken')
+            if not page_token:
+                break
         return tasks
     except HttpError as e:
         print(f"HTTP error occurred: {e}")
