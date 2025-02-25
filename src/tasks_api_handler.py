@@ -48,7 +48,12 @@ def initialize_task_list():
         SERVICE = build('tasks', 'v1', credentials=CREDS)
         print("Google Tasks API initialized successfully.")
     except Exception as e:
+        # Clear the user token and make them reauthenticate
         print(f"An error occurred while initializing Google Tasks API: {e}")
+        if os.path.exists('token.pickle'):
+            os.remove('token.pickle')
+        CREDS = _get_credentials()
+        SERVICE = build('tasks', 'v1', credentials=CREDS)
         raise
 
 """
